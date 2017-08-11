@@ -4,8 +4,12 @@ import android.Manifest;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -18,17 +22,23 @@ import java.util.Observable;
 import java.util.Observer;
 
 import static java.lang.Thread.sleep;
+import com.exscan.online.exscan.ScanTaskLoader;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, Observer {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, Observer, LoaderManager.LoaderCallbacks<String>{
 
-    ListView lstStatus;
-    Button btnScan;
+    private ListView lstStatus;
+    private Button btnScan;
+    private ProgressBar pbStatus;
+    private TextView lblAvgFileSize;
+    private ListView lstExtFiles;
+
+
     FilesModel filesModel;
     FileListAdapter fileListAdapter;
-    ProgressBar pbStatus;
-    AsyncTask<String, String, String> newAsyncTask;
+    LoaderManager mLoaderMgr;
 
     private int STORAGE_PERMISSION_CODE = 23;
+    private FileExtListAdapter fileExtListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,98 +47,67 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         lstStatus = (ListView) findViewById(R.id.lstFiles);
         btnScan = (Button) findViewById(R.id.btnScan);
         pbStatus = (ProgressBar) findViewById(R.id.pbStatus);
+        lblAvgFileSize = (TextView) findViewById(R.id.lblAvgSize);
+        lstExtFiles = (ListView) findViewById(R.id.lstExtFiles);
+
         pbStatus.setMax(5);
+        pbStatus.setVisibility(View.GONE);
         btnScan.setOnClickListener(this);
-        filesModel = new FilesModel();
-        //mock();
+        filesModel = ScanController.getInstance().getFilesModel();
         fileListAdapter = new FileListAdapter(this, filesModel.getList());
+        fileExtListAdapter = new FileExtListAdapter(this, filesModel.getFileExtList());
         lstStatus.setAdapter(fileListAdapter);
+        lstExtFiles.setAdapter(fileExtListAdapter);
         filesModel.addObserver(this);
-    }
 
-    public void mock() {
-        filesModel.insert(new FileModel("file1", 100, new File("")));
-        filesModel.insert(new FileModel("file2", 56, new File("")));
-        filesModel.insert(new FileModel("file3", 89, new File("")));
-        filesModel.insert(new FileModel("file4", 88, new File("")));
-        filesModel.insert(new FileModel("file5", 556, new File("")));
-        filesModel.insert(new FileModel("file6", 33, new File("")));
-        filesModel.insert(new FileModel("file7", 11, new File("")));
-    }
+        mLoaderMgr = getSupportLoaderManager();
 
-    private void sleepTill(int secs) {
-        try {
-            sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (mLoaderMgr.getLoader(1) != null ) {
+            mLoaderMgr.initLoader(1, null, this);
+            pbStatus.setVisibility(View.VISIBLE);
+            btnScan.setText("Stop");
         }
     }
 
-    public void scan(File file) {
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            for (File eachFile : files) {
-                if (eachFile.isFile()) {
-                    filesModel.insert(new FileModel(eachFile.getName(), eachFile.length(), eachFile));
-                }
-                else if (eachFile.isDirectory()) {
-                    scan(eachFile);
-                }
-            }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        cleanup();
+    }
+
+    private void cleanup() {
+        ScanController.getInstance().getFilesModel().deleteObservers();
+        if (mLoaderMgr.getLoader(1) != null && mLoaderMgr.getLoader(1).isStarted()) {
+            mLoaderMgr.getLoader(1).stopLoading();
         }
     }
+
+
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.btnScan ) {
             if (((Button)v).getText().toString().equalsIgnoreCase("Scan")) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
-                final File folder = Environment.getExternalStorageDirectory();// Folder Name
-
-                newAsyncTask = new AsyncTask<String, String, String>() {
-
-                    @Override
-                    protected String doInBackground(String... params) {
-                        filesModel.clear();
-                        publishProgress("processing");
-                        scan(folder);
-                        return "finished";
-                    }
-
-                    @Override
-                    protected void onPostExecute(String s) {
-                        pbStatus.setVisibility(View.GONE);
-                        btnScan.setText("Scan");
-                        super.onPostExecute(s);
-                    }
-
-                    @Override
-                    protected void onProgressUpdate(String... values) {
-                        super.onProgressUpdate(values);
-                        pbStatus.setVisibility(View.VISIBLE);
-                        pbStatus.setProgress(filesModel.size());
-                    }
-
-                    @Override
-                    protected void onCancelled(String s) {
-                        super.onCancelled(s);
-                        pbStatus.setVisibility(View.GONE);
-                    }
-
-                    @Override
-                    protected void onCancelled() {
-                        super.onCancelled();
-                        pbStatus.setVisibility(View.GONE);
-                    }
-                };
-                newAsyncTask.execute("Update");
-                ((Button)v).setText("Stop");
+                btnScan.setText("Stop");
+                pbStatus.setVisibility(View.VISIBLE);
+                if (mLoaderMgr.getLoader(1) == null) {
+                    mLoaderMgr.initLoader(1, null, this);
+                }
+                else {
+                    ScanController.getInstance().clear();
+                    mLoaderMgr.getLoader(1).reset();
+                    mLoaderMgr.restartLoader(1, null, this);
+                }
             }
-            else {
-                newAsyncTask.cancel(true);
-                ((Button)v).setText("Scan");
+            else if (((Button)v).getText().toString().equalsIgnoreCase("Stop")) {
+                btnScan.setText("Scan");
+                pbStatus.setVisibility(View.GONE);
+                lblAvgFileSize.setText("Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
+
+                mLoaderMgr.getLoader(1).reset();
+                mLoaderMgr.getLoader(1).stopLoading();
             }
         }
-
     }
 
     @Override
@@ -138,9 +117,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void run() {
                     fileListAdapter.update(filesModel.getList());
+                    fileExtListAdapter.update(filesModel.getFileExtList());
                     lstStatus.invalidate();
+                    lstExtFiles.invalidate();
+
                 }
             });
         }
+    }
+    @Override
+    public Loader<String> onCreateLoader(int id, Bundle args) {
+        return new ScanTaskLoader(this);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<String> loader) {
+        Log.d("MainActivity", "onLoaderReset()");
+        ScanController.getInstance().clear();
+    }
+
+    @Override
+    public void onLoadFinished(Loader<String> loader, String data) {
+        Log.d("MainActivity", "onLoadFinished");
+        btnScan.setText("Scan");
+        pbStatus.setVisibility(View.GONE);
+        lblAvgFileSize.setText("Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
     }
 }
