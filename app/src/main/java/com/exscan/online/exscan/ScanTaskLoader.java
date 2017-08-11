@@ -32,11 +32,12 @@ public class ScanTaskLoader extends AsyncTaskLoader<String> {
                 }
                 if (eachFile.isFile()) {
                     ScanController.getInstance().getFilesModel().insert(new FileModel(eachFile.getName(), eachFile.length(), eachFile));
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+// testing backgound cases
+//                    try {
+//                        Thread.sleep(1000);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
                 }
                 else if (eachFile.isDirectory()) {
                     scan(eachFile);
