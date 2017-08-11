@@ -20,12 +20,55 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/pbStatus"
-        android:layout_below="@id/btnScan" />
-    <ListView
+        android:layout_below="@id/btnScan"
+        android:layout_centerHorizontal="true"/>
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        android:id="@+id/lstFiles"
+        android:id="@+id/lblAvgSize"
         android:layout_below="@id/pbStatus"
-        android:layout_centerHorizontal="true"/>
+        android:textStyle="bold"
+        android:textColor="@android:color/holo_purple"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Top 10 files"
+        android:id="@+id/lblTop10Files"
+        android:layout_below="@+id/lblAvgSize"
+        android:layout_alignParentLeft="true"
+        android:textColor="@android:color/holo_green_dark"
+        android:textStyle="bold"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Freequently used 5 .ext"
+        android:id="@+id/lblFeq3Ext"
+        android:layout_below="@id/lblAvgSize"
+        android:layout_alignParentRight="true"
+        android:textColor="@android:color/holo_green_dark"
+        android:textStyle="bold"
+        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/lblTop10Files"
+        android:layout_marginTop="5dp"
+        android:orientation="horizontal">
+        <ListView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Hello World!"
+            android:id="@+id/lstFiles"
+            android:layout_weight="1"
+            android:layout_marginRight="5dp"
+            />
+        <ListView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/lstExtFiles"
+            android:layout_weight=".5"
+            />
+    </LinearLayout>
+
 </RelativeLayout>

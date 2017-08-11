@@ -22,6 +22,12 @@ public class FilesModel extends Observable {
     NodeFileExt tailFileExt = null;
     final int max_files_ext = 5;
     int numberOfFileExtItems;
+    long scannedFilesCount = 0;
+    double totalFilesSize = 0;
+
+    public double getAvgFileSize() {
+        return totalFilesSize / scannedFilesCount;
+    }
 
     private class NodeFileExt {
         public FileExtModel fileExtModel;
@@ -177,6 +183,8 @@ public class FilesModel extends Observable {
             mostFreequentFileExtensions.put(ext, mostFreequentFileExtensions.get(ext)+1);
         }
         insertFileExt(new FileExtModel(ext, mostFreequentFileExtensions.get(ext)));
+        scannedFilesCount++;
+        totalFilesSize += newFileModel.getSize();
         /////
         if (numberOfItems < max_size) {
             Node newNode = createNewNode(newFileModel);
@@ -262,7 +270,12 @@ public class FilesModel extends Observable {
         numberOfItems = 0;
         head = null;
         tail = null;
+        numberOfFileExtItems = 0;
+        headFileExt = null;
+        tailFileExt = null;
         mostFreequentFileExtensions.clear();
+        totalFilesSize = 0;
+        scannedFilesCount = 0;
         setChanged();
         notifyObservers();
     }
