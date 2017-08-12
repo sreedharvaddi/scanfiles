@@ -54,7 +54,7 @@ public class FilesModel extends Observable {
         boolean extUpdated = false;
         int index = filefullname.lastIndexOf('.');
         if (index > 0 && filefullname.length() > 0) {
-            String ext = filefullname.substring(filefullname.lastIndexOf('.'), filefullname.length() - 1);
+            String ext = filefullname.substring(filefullname.lastIndexOf('.'));
             if (mostFreequentFileExtensions.get(ext) == null) {
                 mostFreequentFileExtensions.put(ext, 1);
             } else {
