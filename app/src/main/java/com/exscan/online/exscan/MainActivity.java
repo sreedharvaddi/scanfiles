@@ -2,11 +2,8 @@ package com.exscan.online.exscan;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
-import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,13 +14,13 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.io.File;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
 import static java.lang.Thread.sleep;
-import com.exscan.online.exscan.ScanTaskLoader;
+
+import com.exscan.online.exscan.controller.ScanController;
+import com.exscan.online.exscan.model.FilesModel;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, Observer, LoaderManager.LoaderCallbacks<String>{
 
@@ -65,24 +62,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (mLoaderMgr.getLoader(1) != null ) {
             mLoaderMgr.initLoader(1, null, this);
-            pbStatus.setVisibility(View.VISIBLE);
-            btnScan.setText("Stop");
+            updateUIStatus(true);
         }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        cleanup();
     }
 
     private void cleanup() {
         ScanController.getInstance().getFilesModel().deleteObservers();
-        if (mLoaderMgr.getLoader(1) != null && mLoaderMgr.getLoader(1).isStarted()) {
+        if (mLoaderMgr.getLoader(1).isStarted()) {
             mLoaderMgr.getLoader(1).stopLoading();
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        cleanup();
+    }
 
     @Override
     public void onClick(View v) {
@@ -93,39 +93,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
                     return;
                 }
-                btnScan.setText("Stop");
-                pbStatus.setVisibility(View.VISIBLE);
-                if (mLoaderMgr.getLoader(1) == null) {
-                    mLoaderMgr.initLoader(1, null, this);
-                }
-                else {
-                    ScanController.getInstance().clear();
-                    mLoaderMgr.getLoader(1).reset();
-                    mLoaderMgr.restartLoader(1, null, this);
-                }
+                updateUIStatus(true);
+                scanStart();
             }
             else if (((Button)v).getText().toString().equalsIgnoreCase("Stop")) {
-                btnScan.setText("Scan");
-                pbStatus.setVisibility(View.GONE);
-                lblAvgFileSize.setText("Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
-
-                mLoaderMgr.getLoader(1).reset();
-                mLoaderMgr.getLoader(1).stopLoading();
+                stopScan();
+                updateUIStatus(false);
             }
         }
     }
 
+    private void scanStart() {
+        if (mLoaderMgr.getLoader(1) == null) {
+            mLoaderMgr.initLoader(1, null, this);
+        }
+        else {
+            ScanController.getInstance().clear();
+            mLoaderMgr.getLoader(1).reset();
+            mLoaderMgr.restartLoader(1, null, this);
+        }
+    }
+
+    private void stopScan() {
+        mLoaderMgr.getLoader(1).reset();
+        mLoaderMgr.getLoader(1).stopLoading();
+    }
+
+    private void updateUIStatus(boolean scanInprogrss) {
+        if (scanInprogrss) {
+            btnScan.setText("Stop");
+            pbStatus.setVisibility(View.VISIBLE);
+            lblAvgFileSize.setText("files scanned till "+ScanController.getInstance().getFilesModel().getScannedFilesCount()+",Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
+        }
+        else {
+            btnScan.setText("Scan");
+            pbStatus.setVisibility(View.GONE);
+            lblAvgFileSize.setText("files scanned till "+ScanController.getInstance().getFilesModel().getScannedFilesCount()+", Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
+        }
+    }
+
     @Override
-    public void update(Observable o, Object arg) {
+    public void update(final Observable o, Object arg) {
         if (FilesModel.class.isInstance(o)) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    fileListAdapter.update(filesModel.getList());
-                    fileExtListAdapter.update(filesModel.getFileExtList());
-                    lstStatus.invalidate();
-                    lstExtFiles.invalidate();
-
+                    if (((FilesModel)o).isNewEntryUpdate()) {
+                        fileListAdapter.update(filesModel.getList());
+                        fileExtListAdapter.update(filesModel.getFileExtList());
+                        lstStatus.invalidate();
+                        lstExtFiles.invalidate();
+                    }
+                    lblAvgFileSize.setText("files scanned till "+ScanController.getInstance().getFilesModel().getScannedFilesCount()+",Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
                 }
             });
         }
@@ -139,13 +158,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onLoaderReset(Loader<String> loader) {
         Log.d("MainActivity", "onLoaderReset()");
         ScanController.getInstance().clear();
+        pbStatus.setVisibility(View.GONE);
+        btnScan.setText("Scan");
     }
 
     @Override
     public void onLoadFinished(Loader<String> loader, String data) {
         Log.d("MainActivity", "onLoadFinished");
-        btnScan.setText("Scan");
-        pbStatus.setVisibility(View.GONE);
-        lblAvgFileSize.setText("Avarage file size : "+String.format("%.2f KB",ScanController.getInstance().getFilesModel().getAvgFileSize()/1024));
+        updateUIStatus(false);
     }
 }

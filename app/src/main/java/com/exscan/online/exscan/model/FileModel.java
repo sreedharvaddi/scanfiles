@@ -1,11 +1,11 @@
-package com.exscan.online.exscan;
+package com.exscan.online.exscan.model;
 
 import java.io.File;
 
 /**
  * Created by sreed on 8/9/2017.
  */
-public class FileModel {
+public class FileModel  implements IModel {
     long size;
     String filename;
     File file;
@@ -14,7 +14,7 @@ public class FileModel {
         size = 0;
         filename = "";
     }
-    FileModel(String afilename, long s, File afile) {
+    public FileModel(String afilename, long s, File afile) {
         filename = afilename;
         size = s;
         file = afile;
@@ -22,7 +22,7 @@ public class FileModel {
     void setSize(long i) {
         size = i;
     }
-    long getSize() {
+    public long getSize() {
         return size;
     }
 
