@@ -1,4 +1,6 @@
-package com.exscan.online.exscan;
+package com.exscan.online.exscan.controller;
+
+import com.exscan.online.exscan.model.FilesModel;
 
 /**
  * Created by sreed on 8/10/2017.
@@ -6,7 +8,7 @@ package com.exscan.online.exscan;
 public class ScanController {
     static ScanController instance;
     FilesModel filesModel;
-    static ScanController getInstance() {
+    public static ScanController getInstance() {
         if (instance == null) {
             instance = new ScanController();
         }

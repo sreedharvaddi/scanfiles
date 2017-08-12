@@ -5,8 +5,12 @@ import android.os.Environment;
 import android.support.v4.content.AsyncTaskLoader;
 import android.util.Log;
 
+import com.exscan.online.exscan.controller.ScanController;
+import com.exscan.online.exscan.model.FileModel;
+
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by sreed on 8/10/2017.
@@ -32,12 +36,12 @@ public class ScanTaskLoader extends AsyncTaskLoader<String> {
                 }
                 if (eachFile.isFile()) {
                     ScanController.getInstance().getFilesModel().insert(new FileModel(eachFile.getName(), eachFile.length(), eachFile));
-// testing backgound cases
-//                    try {
-//                        Thread.sleep(1000);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
+// testing backgound cases for recording video
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
                 else if (eachFile.isDirectory()) {
                     scan(eachFile);
@@ -55,6 +59,6 @@ public class ScanTaskLoader extends AsyncTaskLoader<String> {
 
     @Override
     public void onStopLoading() {
-        this.cancelLoad();
+        cancelLoad();
     }
 }

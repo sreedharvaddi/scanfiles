@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.exscan.online.exscan.model.FileExtModel;
+
 import java.util.List;
 
 /**

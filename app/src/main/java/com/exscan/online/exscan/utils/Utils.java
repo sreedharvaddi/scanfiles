@@ -1,4 +1,4 @@
-package com.exscan.online.exscan;
+package com.exscan.online.exscan.utils;
 
 import java.util.ArrayList;
 import java.util.List;
